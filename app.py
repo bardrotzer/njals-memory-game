@@ -69,36 +69,40 @@ class Kort:
 kortene = [Kort(par[i], posisjoner[i]) for i in range(16)]
  
 # Game variables
-forste_kort = None
-andre_kort = None
 par_riktig = 0
 antall = 0
 run = True
 klokke = pygame.time.Clock()
 venter = False # forteller spillet at det skal vente litt før reset
 selected_card = None
-state = 'start' # can be start, play or end
- 
+showing_cards = True
 
 
 def start_game():
-    global state
-    # Show all cards for memorization at the start
-    for Kort in kortene:
-        Kort.vist = True
+    global showing_cards
+    # Vis alle kortene så man kan prøve å huske dem
+    for kort in kortene:
+        kort.vist = True
 
-    for Kort in kortene:
-        Kort.hent(vindu)
+    start_time = time.time()
+    while time.time() - start_time < 5:  # Vis i 5 sekunder
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False  # Signal avslutt
+
+        vindu.fill(GRA)
+        for kort in kortene:
+            kort.hent(vindu)
     
-    vindu.blit(font.render("Husk parene!!", True, ROD), (10, 500))
-    pygame.display.flip()
-    
-    # vent 500 ms, så skjuler vi kortene og setter state til play
-    pygame.time.wait(5000)
-    for Kort in kortene:
-        Kort.vist = False
-    state = 'play'
-    return True
+        vindu.blit(font.render("Husk kortene!", True, ROD), (10, 500))
+        pygame.display.flip()
+        pygame.time.wait(100)  # gi et lite øyeblikks pause
+
+    # Etter 5 sekunder skjules alle kortene igjen
+    for kort in kortene:
+        kort.vist = False
+    showing_cards = False
+    return True 
 
  
 # Hide the cards again
@@ -134,11 +138,11 @@ def success_handler(card1:Kort, card2:Kort):
 # Main game loop
 while run:
     vindu.fill(GRA)
-
-    if state == 'start':
-        start_game()
-    elif state == 'play':
-    # sjekk alle events i pygame
+    # vis kortene i 5 sekunder
+    if showing_cards:
+        run = start_game()
+    else:
+        # sjekk alle events i pygame
         event = get_event()
         if event and event.type == pygame.QUIT:
             run = False
@@ -159,13 +163,14 @@ while run:
         for Kort in kortene:
             Kort.hent(vindu)              
         # update the display
-        pygame.display.flip()
-        klokke.tick(30)   
+
 
 
         # venter forteller oss at vi ikke skal gå videre før vi har ventet 500ms
         if venter:
-            pygame.time.wait(500)
+            antall += 1
+            pygame.display.flip() # oppdater displyet før vi starter med venting
+            pygame.time.wait(1000) # vent 1 sekund  mens vi viser bakke kortene
             if check_match(selected_card, clicked_card):
                 success_handler(selected_card, clicked_card)
                 par_riktig += 1
@@ -177,35 +182,6 @@ while run:
 
 
 
-     
-#    for event in pygame.event.get():
-#        if event.type == pygame.QUIT:
-#            run = False
-#        elif event.type == pygame.MOUSEBUTTONDOWN and not venter:
-            # if forste_kort is None:
-            #     for Kort in kortene:
-            #         if Kort.rect.collidepoint(event.pos) and not Kort.vist and not Kort.matcha:
-            #             forste_kort = Kort
-            #             Kort.vist = True
-            # elif andre_kort is None:
-            #     for Kort in kortene:
-            #         if Kort.rect.collidepoint(event.pos) and not Kort.vist and not Kort.matcha:
-            #             andre_kort = Kort
-            #             Kort.vist = True
-            #             antall += 1
-            #             venter = True
-    # if venter:
-    #     pygame.time.wait(500)
-    #     if forste_kort.symbol == andre_kort.symbol:
-    #         forste_kort.matcha = True
-    #         andre_kort.matcha = True
-    #         par_riktig += 1
-    #     else:
-    #         forste_kort.vist = False
-    #         andre_kort.vist = False
-    #     forste_kort = None
-    #     andre_kort = None
-    #     venter = False
  
 
     # oppdater score underveis
@@ -216,6 +192,8 @@ while run:
         vinne = font.render("DU VANT!", True, BLA)
         vindu.blit(vinne, (BREDDE // 2 - 100, HOYDE // 2 - 50))
  
+    pygame.display.flip()
+    klokke.tick(30)   
 
  
 pygame.quit()
