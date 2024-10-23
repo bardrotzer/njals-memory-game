@@ -77,24 +77,33 @@ run = True
 klokke = pygame.time.Clock()
 venter = False # forteller spillet at det skal vente litt før reset
 selected_card = None
+state = 'start' # can be start, play or end
  
-# Show all cards for memorization at the start
-for Kort in kortene:
-    Kort.vist = True
-print('alle kortene vist')
 
-vindu.fill(GRA)
-for Kort in kortene:
-    Kort.hent(vindu)
- 
-vindu.blit(font.render("Husk parene!!", True, ROD), (10, 500))
-pygame.display.flip()
-time.sleep(5)
+
+def start_game():
+    global state
+    # Show all cards for memorization at the start
+    for Kort in kortene:
+        Kort.vist = True
+
+    for Kort in kortene:
+        Kort.hent(vindu)
+    
+    vindu.blit(font.render("Husk parene!!", True, ROD), (10, 500))
+    pygame.display.flip()
+    
+    # vent 500 ms, så skjuler vi kortene og setter state til play
+    pygame.time.wait(5000)
+    for Kort in kortene:
+        Kort.vist = False
+    state = 'play'
+    return True
+
  
 # Hide the cards again
 for Kort in kortene:
     Kort.vist = False
-
 # itererer over all events i pygame og returnerer.
 def get_event():
     for event in pygame.event.get():
@@ -125,42 +134,47 @@ def success_handler(card1:Kort, card2:Kort):
 # Main game loop
 while run:
     vindu.fill(GRA)
+
+    if state == 'start':
+        start_game()
+    elif state == 'play':
     # sjekk alle events i pygame
-    event = get_event()
-    if event and event.type == pygame.QUIT:
-        run = False
-    elif event and event.type == pygame.MOUSEBUTTONDOWN:
-        # sjekk om det er et kort som er klikket på
-        clicked_card = get_card(event)
-        # et kort har blitt klikket på
-        if clicked_card is not None:
-            clicked_card.vist = True
-            # ingen kort er valgt (det er det første klikket)
-            if selected_card is None:
-                selected_card = clicked_card
-            # et kort er allerede valgt (det er det andre klikket)
+        event = get_event()
+        if event and event.type == pygame.QUIT:
+            run = False
+        elif event and event.type == pygame.MOUSEBUTTONDOWN:
+            # sjekk om det er et kort som er klikket på
+            clicked_card = get_card(event)
+            # et kort har blitt klikket på
+            if clicked_card is not None:
+                clicked_card.vist = True
+                # ingen kort er valgt (det er det første klikket)
+                if selected_card is None:
+                    selected_card = clicked_card
+                # et kort er allerede valgt (det er det andre klikket)
+                else:
+                    venter = True
+
+        # iterate over and show all cards marked to be shown
+        for Kort in kortene:
+            Kort.hent(vindu)              
+        # update the display
+        pygame.display.flip()
+        klokke.tick(30)   
+
+
+        # venter forteller oss at vi ikke skal gå videre før vi har ventet 500ms
+        if venter:
+            pygame.time.wait(500)
+            if check_match(selected_card, clicked_card):
+                success_handler(selected_card, clicked_card)
+                par_riktig += 1
             else:
-                venter = True
+                fail_handler(selected_card, clicked_card)
+            selected_card = None
+            clicked_card = None
+            venter = False
 
-    # iterate over and show all cards marked to be shown
-    for Kort in kortene:
-        Kort.hent(vindu)              
-    # update the display
-    pygame.display.flip()
-    klokke.tick(30)   
-
-
-    # venter forteller oss at vi ikke skal gå videre før vi har ventet 500ms
-    if venter:
-        pygame.time.wait(500)
-        if check_match(selected_card, clicked_card):
-            success_handler(selected_card, clicked_card)
-            par_riktig += 1
-        else:
-            fail_handler(selected_card, clicked_card)
-        selected_card = None
-        clicked_card = None
-        venter = False
 
 
      
@@ -194,14 +208,14 @@ while run:
     #     venter = False
  
 
- 
-    # text = font.render(f"Par funnet: {par_riktig} Forsøk: {antall}", True, ROD)
-    # vindu.blit(text, (10, 500))
- 
-    # if par_riktig == 8:
-    #     vinne = font.render("DU VANT!", True, BLA)
-    #     vindu.blit(vinne, (BREDDE // 2 - 100, HOYDE // 2 - 50))
+    # oppdater score underveis
+    text = font.render(f"Par funnet: {par_riktig} Forsøk: {antall}", True, ROD)
+    vindu.blit(text, (10, 500))
+    # sjekk om du har vunnet
+    if par_riktig == 8:
+        vinne = font.render("DU VANT!", True, BLA)
+        vindu.blit(vinne, (BREDDE // 2 - 100, HOYDE // 2 - 50))
  
 
  
-#pygame.quit()
+pygame.quit()
