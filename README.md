@@ -8,6 +8,12 @@ I'll recommend you to download (cursor)[https://www.cursor.com/] for development
 
 I take it you have python3 installer, i reference it as python, but you can use python3 if you have no alias.
 
+## copy the repository
+
+```bash
+  git clone git@github.com:bardrotzer/njals-memory-game.git
+```
+
 
 # How to run
 ```bash
